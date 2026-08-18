@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>升降機工程時間線專案</title>
+  <style>
+    :root {
+      /* 稍為紅一點的褐色系 (Red-Brown / Terracotta Palette) */
+      --bg-color: #2b1810;         /* 深紅褐背景 */
+      --card-bg: #3a2218;        /* 卡片深紅褐色背景 */
+      --card-border: #5c382b;    /* 卡片與邊框紅褐色 */
+      --text-main: #fcf5f2;      /* 主文字 (暖白) */
+      --text-sub: #cbb4ab;       /* 次要文字 (淺粉褐) */
+      
+      /* 月份狀態顏色 */
+      --status-past: #22c55e;    /* 已過去：綠色 */
+      --status-current: #f97316; /* 當前月份：橙紅色 (配合閃爍) */
+      --status-future: #d6c4bc;  /* 未到月份：淡粉褐色 */
+      
+      --accent-red-brown: #ea580c;/* 暖紅褐點綴色 */
+      --timeline-height: 105px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      overflow-x: hidden;
+    }
+
+    /* 頂部時間線區域 - 容器 (No Margin / No Padding) */
+    .timeline-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: var(--timeline-height);
+      background-color: rgba(58, 34, 24, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      
+      /* 美化捲動條樣式 */
+      scrollbar-width: thin;
+      scrollbar-color: var(--card-border) transparent;
+    }
+
+    .timeline-header::-webkit-scrollbar {
+      height: 6px;
+    }
+    .timeline-header::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .timeline-header::-webkit-scrollbar-thumb {
+      background-color: var(--card-border);
+      border-radius: 4px;
+    }
+
+    /* 時間線軌道 */
+    .timeline-track {
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding: 10px 0 !important;
+      margin: 0 !important;
+      min-width: 100vw;
+      width: max-content;
+    }
+
+    /* 直線貫穿整個頁面，完全零 Margin，貼滿最左側至最右側 */
+    .timeline-line {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: 3px;
+      background-color: var(--card-border);
+      z-index: 1;
+    }
+
+    /* 時間點按鈕 */
+    .timeline-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+      background: none;
+      border: none;
+      outline: none;
+      transition: transform 0.2s ease;
+      padding: 0 4px;
+      margin: 0;
+      
+      flex: 0 0 110px;
+      min-width: 110px;
+    }
+
+    .timeline-node .dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid var(--card-bg);
+      margin-bottom: 8px;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    .timeline-node .date {
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .timeline-node .label {
+      font-size: 0.72rem;
+      white-space: nowrap;
+      width: 100%;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* --- 月份狀態顏色標示 --- */
+    /* 1. 已過去的時間點 (綠色) */
+    .timeline-node.is-past .dot {
+      background-color: var(--status-past);
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+    }
+    .timeline-node.is-past .date,
+    .timeline-node.is-past .label {
+      color: #4ade80;
+    }
+
+    /* 2. 現在的月份：緩慢平滑閃爍動畫 (不快不刺眼) */
+    .timeline-node.is-current .dot {
+      background-color: var(--status-current);
+      animation: pulse-dot 2.5s infinite ease-in-out;
+    }
+    .timeline-node.is-current .date,
+    .timeline-node.is-current .label {
+      color: #fb923c;
+      font-weight: bold;
+    }
+
+    @keyframes pulse-dot {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.8);
+      }
+      50% {
+        transform: scale(1.3);
+        box-shadow: 0 0 12px 6px rgba(249, 115, 22, 0.3);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+      }
+    }
+
+    /* 3. 未到的月份 */
+    .timeline-node.is-future .dot {
+      background-color: var(--status-future);
+    }
+    .timeline-node.is-future .date,
+    .timeline-node.is-future .label {
+      color: var(--status-future);
+      opacity: 0.85;
+    }
+
+    /* Active 激活狀態 */
+    .timeline-node:hover {
+      transform: translateY(-2px);
+    }
+
+    .timeline-node.active .dot {
+      outline: 2px solid var(--text-main);
+      outline-offset: 2px;
+    }
+    .timeline-node.active .date {
+      text-decoration: underline;
+      font-size: 0.85rem;
+    }
+
+    /* 主內容區塊 */
+    .content-container {
+      margin-top: var(--timeline-height);
+      padding: 30px 40px;
+      max-width: 1600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .milestone-section {
+      min-height: calc(100vh - var(--timeline-height) - 60px);
+      display: flex;
+      align-items: center;
+      padding: 20px 0;
+      scroll-margin-top: var(--timeline-height);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      aspect-ratio: 16 / 8.8;
+      max-height: 78vh;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      overflow: hidden;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    /* 左側多圖片展示區 */
+    .card-gallery-wrapper {
+      background-color: #23120b;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      border-right: 1px solid var(--card-border);
+    }
+
+    .gallery-header {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      display: flex;
+      justify-content: flex-end;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #44281e;
+    }
+
+    /* 圖片網格 */
+    .image-grid {
+      display: grid;
+      gap: 12px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .image-grid.count-1 { grid-template-columns: 1fr; }
+    .image-grid.count-2 { grid-template-columns: 1fr 1fr; }
+    .image-grid.count-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .image-grid.count-3 .img-item:first-child { grid-column: span 2; }
+    .image-grid.count-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+    .img-item {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #3a2218;
+      border: 1px solid var(--card-border);
+      min-height: 180px;
+    }
+
+    .img-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .img-item:hover img {
+      transform: scale(1.03);
+    }
+
+    .img-placeholder-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #3a2218 0%, #23120b 100%);
+      color: var(--text-sub);
+      padding: 15px;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    .img-placeholder-fallback span {
+      font-family: monospace;
+      color: var(--accent-red-brown);
+      margin-top: 6px;
+      font-size: 0.75rem;
+    }
+
+    /* 右側詳細內容區 */
+    .card-info {
+      padding: 35px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+
+    .card-header .date-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .date-badge.is-past { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; }
+    .date-badge.is-current { background-color: rgba(249, 115, 22, 0.2); color: #ffedd5; border: 1px solid #f97316; }
+    .date-badge.is-future { background-color: rgba(214, 196, 188, 0.1); color: #fcf5f2; border: 1px solid #8c5b4a; }
+
+    .card-header h2 {
+      font-size: 1.8rem;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .card-body {
+      margin: 20px 0;
+    }
+
+    .card-body p {
+      color: var(--text-sub);
+      line-height: 1.6;
+      font-size: 0.98rem;
+      margin-bottom: 16px;
+    }
+
+    .task-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .task-list {
+      list-style: none;
+    }
+
+    .task-list li {
+      color: var(--text-main);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.92rem;
+    }
+
+    .task-list li::before {
+      content: "■";
+      color: var(--accent-red-brown);
+      font-size: 0.7rem;
+    }
+
+    .card-footer {
+      border-top: 1px solid var(--card-border);
+      padding-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 1100px) {
+      .card {
+        grid-template-columns: 1fr;
+        aspect-ratio: auto;
+        max-height: none;
+      }
+      .card-gallery-wrapper {
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部時間線區域 -->
+  <header class="timeline-header" id="timelineHeader">
+    <div class="timeline-track" id="timelineTrack">
+      <div class="timeline-line" id="timelineLine"></div>
+    </div>
+  </header>
+
+  <!-- 下方詳細內容區 -->
+  <main class="content-container" id="contentContainer"></main>
+
+  <script>
+    const milestones = [
+      { date: "2025.11", title: "草坪原貌", desc: "工程進場前進行現場草坪與周邊環境原貌記錄，並進行前期地籍勘測。", tasks: ["現場原貌拍攝存檔", "地界與平整度測量", "樹木保護範圍標記"], images: ["img/202511-01.jpg", "img/202511-02.jpg"] },
+      { date: "2025.12", title: "進場", desc: "施工團隊與重型設備進駐現場，搭設臨時圍板與安全警示設施。", tasks: ["工程告示牌設立", "施工車輛動線規劃", "臨時水電接駁"], images: ["img/202512-01.jpg", "img/202512-02.jpg"] },
+      { date: "2026.01", title: "掘地", desc: "開闢地下基礎挖掘工作，確認土質結構與地下障礙物清理。", tasks: ["地表開挖工程", "廢土方運離", "地下水文監測點設置"], images: ["img/202601-01.jpg"] },
+      { date: "2026.02", title: "地下電纜改位", desc: "配合電力公司進行施工範圍內地下高壓與低壓電纜遷移。", tasks: ["舊電纜斷電與標示", "新電纜管道鋪設", "供電系統切換測試"], images: ["img/202602-01.jpg", "img/202602-02.jpg"] },
+      { date: "2026.03", title: "安裝圍街板、地下管道改位", desc: "組裝標準施工圍街板，並進行地下雨水與污水管道改道工程。", tasks: ["圍街板隔音與安全加固", "地下排水管線重鋪", "渠務署對接檢驗"], images: ["img/202603-01.jpg", "img/202603-02.jpg", "img/202603-03.jpg"] },
+      { date: "2026.04", title: "打閘板", desc: "第一階段鋼板樁（閘板）打入工程，確保深基坑開挖之擋土安全。", tasks: ["鋼板樁定位", "打樁機具作業", "周邊地面沉降監測"], images: ["img/202604-01.jpg"] },
+      { date: "2026.05", title: "打閘板", desc: "持續推進第二階段鋼板樁打設，強化基坑支撐防護網。", tasks: ["側向支撐架設", "板樁垂直度校正", "噪音與震動監控"], images: ["img/202605-01.jpg", "img/202605-02.jpg"] },
+      { date: "2026.06", title: "打閘板、地下管道改位", desc: "完成最終階段閘板打設，並完成剩餘地下公共設施管道之改道。", tasks: ["基坑圍護結構封閉", "電信與水管最終改線", "開挖前安全評估"], images: ["img/202606-01.jpg", "img/202606-02.jpg"] },
+      { date: "2026.07", title: "打閘板、灌漿", desc: "閘板工程完工，並開始進行基底地質改良與水泥灌漿加固工程。", tasks: ["地基高壓噴射灌漿", "止水帷幕施作", "灌漿強度抽樣檢測"], images: ["img/202607-01.jpg", "img/202607-02.jpg"] },
+      { date: "2026.08", title: "灌漿", desc: "開挖底板與側壁泥凝土灌漿，構建升降機井道之堅實地基。", tasks: ["底板鋼筋綁紮", "混凝土連續澆置", "養護與強度監測"], images: ["img/202608-01.jpg", "img/202608-02.jpg"] },
+      { date: "2026.09", title: "打樁", desc: "升降機主要結構打樁工程（鋼管樁/鑽孔樁），承載大樓整體重量。", tasks: ["打樁機組裝與定位", "樁位深度與垂直度監測", "靜載重測試"], images: ["img/202609-01.jpg"] },
+      { date: "2026.12", title: "建造斜台", desc: "搭建連接地面與升降機入口之無障礙斜台與結構主體。", tasks: ["斜台鋼骨結構組裝", "混凝土階梯與坡道澆置", "扶手預埋件設置"], images: ["img/202612-01.jpg", "img/202612-02.jpg"] },
+      { date: "2027.02", title: "升降機大樓落成", desc: "升降機塔樓主體結構封頂，完成外牆裝飾與頂層機房建造。", tasks: ["塔樓結構封頂", "外牆防水與幕牆施工", "機房防雨與通風設施"], images: ["img/202702-01.jpg", "img/202702-02.jpg"] },
+      { date: "2027.03", title: "安裝升降機", desc: "進場安裝導軌、牽引主機、升降機車廂與控制系統。", tasks: ["主機與導軌精準校準", "機廂與鋼纜吊裝", "控制櫃佈線與調校"], images: ["img/202703-01.jpg", "img/202703-02.jpg", "img/202703-03.jpg"] },
+      { date: "2027.07", title: "竣工", desc: "通過政府與機電署檢測驗收，取得安全准照並正式開放啟用。", tasks: ["發出安全使用准照", "現場環境清潔與復原", "正式開放公眾使用"], images: ["img/202707-01.jpg"] }
+    ];
+
+    const CURRENT_YM = "2026.08"; 
+
+    function getMonthStatus(dateStr) {
+      if (dateStr < CURRENT_YM) return "past";
+      if (dateStr === CURRENT_YM) return "current";
+      return "future";
+    }
+
+    const timelineTrack = document.getElementById("timelineTrack");
+    const contentContainer = document.getElementById("contentContainer");
+    let isProgrammaticScroll = false;
+    let currentTargetNode = null;
+    let currentTargetSectionId = null;
+
+    milestones.forEach((item, index) => {
+      const id = `milestone-${index}`;
+      const status = getMonthStatus(item.date);
+
+      const node = document.createElement("button");
+      node.className = `timeline-node is-${status}`;
+      node.dataset.target = id;
+      
+      const statusText = status === 'past' ? '已完成' : (status === 'current' ? '進行中' : '未到');
+
+      node.innerHTML = `
+        <div class="dot" title="${statusText}"></div>
+        <div class="date">${item.date}</div>
+        <div class="label" title="${item.title}">${item.title}</div>
+      `;
+      node.addEventListener("click", () => handleNodeClick(id, node));
+      timelineTrack.appendChild(node);
+
+      if (status === 'current') {
+        currentTargetNode = node;
+        currentTargetSectionId = id;
+      }
+
+      const imgCount = item.images.length;
+      const galleryHtml = item.images.map((src, i) => `
+        <div class="img-item">
+          <img src="${src}" alt="${item.title} 圖片 ${i+1}" 
+               onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'img-placeholder-fallback\\'>📷 圖片預覽區域<br><span>${src}</span></div>';">
+        </div>
+      `).join('');
+
+      const section = document.createElement("section");
+      section.className = "milestone-section";
+      section.id = id;
+      section.innerHTML = `
+        <div class="card">
+          <div class="card-gallery-wrapper">
+            <div class="gallery-header">
+              <span>共 ${imgCount} 張圖片</span>
+            </div>
+            <div class="image-grid count-${Math.min(imgCount, 4)}">
+              ${galleryHtml}
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-header">
+              <span class="date-badge is-${status}">
+                ${item.date} • ${status === 'past' ? '已完成工序' : (status === 'current' ? '本月施工項目 (進行中)' : '規劃中工序')}
+              </span>
+              <h2>${item.title}</h2>
+            </div>
+            <div class="card-body">
+              <p>${item.desc}</p>
+              <div class="task-title">重點工序項目：</div>
+              <ul class="task-list">
+                ${item.tasks.map(t => `<li>${t}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="card-footer">
+              <span>狀態: ${status === 'past' ? '✓ 已完成' : (status === 'current' ? '⚡ 施工中' : '⏳ 待展開')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      contentContainer.appendChild(section);
+    });
+
+    function handleNodeClick(targetId, targetNode) {
+      isProgrammaticScroll = true;
+      setActiveNode(targetNode);
+
+      const targetElement = document.getElementById(targetId);
+      targetElement.scrollIntoView({ behavior: "smooth" });
+
+      setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 800);
+    }
+
+    function setActiveNode(node) {
+      document.querySelectorAll(".timeline-node").forEach(n => n.classList.remove("active"));
+      node.classList.add("active");
+      node.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+
+    const observerOptions = {
+      root: null,
+      rootMargin: "-30% 0px -40% 0px",
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      if (isProgrammaticScroll) return;
+
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const targetId = entry.target.id;
+          const correspondingNode = document.querySelector(`.timeline-node[data-target="${targetId}"]`);
+          if (correspondingNode) {
+            setActiveNode(correspondingNode);
+          }
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll(".milestone-section").forEach(section => {
+      observer.observe(section);
+    });
+
+    function fixLineWidth() {
+      const track = document.getElementById("timelineTrack");
+      const line = document.getElementById("timelineLine");
+      if (track && line) {
+        line.style.width = Math.max(track.scrollWidth, window.innerWidth) + "px";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      fixLineWidth();
+      setTimeout(() => {
+        fixLineWidth();
+        if (currentTargetNode && currentTargetSectionId) {
+          handleNodeClick(currentTargetSectionId, currentTargetNode);
+        } else {
+          const firstNode = document.querySelector(".timeline-node");
+          if (firstNode) handleNodeClick("milestone-0", firstNode);
+        }
+      }, 100);
+    });
+
+    window.addEventListener("resize", fixLineWidth);
+  </script>
+</body>
+</html>
