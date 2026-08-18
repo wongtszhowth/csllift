@@ -6,7 +6,7 @@
   <title>CSL Lift Addition Project</title>
   <style>
     :root {
-      /* 調整為較明亮的紅褐色系 (Lightened Red-Brown Palette) */
+      /* 調整為較明亮亮紅褐色系 (Lightened Red-Brown Palette) */
       --bg-color: #3d2319;         /* 整體背景：明亮深紅褐 */
       --card-bg: #523124;        /* 卡片背景：中紅褐色 */
       --card-border: #7a4936;    /* 卡片與邊框：淺紅褐 */
@@ -310,6 +310,7 @@
       flex-direction: column;
       justify-content: space-between;
       overflow-y: auto;
+      position: relative;
     }
 
     .card-header {
@@ -394,9 +395,21 @@
       padding-top: 16px;
       margin-top: 20px;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: flex-end;
       color: var(--text-sub);
       font-size: 0.85rem;
+    }
+
+    /* 右下方超大字體月份樣式 (原 1.8rem 放大 3 倍至 5.4rem) */
+    .card-footer .month-display {
+      font-size: 5.4rem;
+      font-weight: 800;
+      color: var(--text-sub);
+      letter-spacing: 1px;
+      line-height: 0.85;
+      opacity: 0.35;
+      user-select: none;
     }
 
     @media (max-width: 1100px) {
@@ -651,7 +664,7 @@
             <div class="card-header">
               <div class="badge-group">
                 <span class="date-badge is-${status}">
-                  ${item.date} • ${status === 'past' ? '已完成工序' : (status === 'current' ? '本月施工項目 (進行中)' : '規劃中工序')}
+                  ${status === 'past' ? '已完成工序' : (status === 'current' ? '本月施工項目 (進行中)' : '規劃中工序')}
                 </span>
                 ${meetingBadgeHtml}
               </div>
@@ -665,6 +678,7 @@
             </div>
             <div class="card-footer">
               <span>狀態: ${status === 'past' ? '✓ 已完成' : (status === 'current' ? '⚡ 施工中' : '⏳ 待展開')}</span>
+              <span class="month-display">${item.date}</span>
             </div>
           </div>
         </div>
