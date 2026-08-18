@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>升降機工程時間線專案</title>
+  <title>CSL Lift Addition Project</title>
   <style>
     :root {
-      /* 稍為紅一點的褐色系 (Red-Brown / Terracotta Palette) */
+      /* 紅褐色系調色 (Red-Brown Palette) */
       --bg-color: #2b1810;         /* 深紅褐背景 */
       --card-bg: #3a2218;        /* 卡片深紅褐色背景 */
       --card-border: #5c382b;    /* 卡片與邊框紅褐色 */
@@ -15,10 +15,11 @@
       
       /* 月份狀態顏色 */
       --status-past: #22c55e;    /* 已過去：綠色 */
-      --status-current: #f97316; /* 當前月份：橙紅色 (配合閃爍) */
+      --status-current: #f97316; /* 當前月份：橙紅色 */
       --status-future: #d6c4bc;  /* 未到月份：淡粉褐色 */
       
       --accent-red-brown: #ea580c;/* 暖紅褐點綴色 */
+      --meeting-badge-bg: #7c2d12;/* 會議日期標籤背景色 */
       --timeline-height: 105px;
     }
 
@@ -53,7 +54,6 @@
       overflow-x: auto;
       scroll-behavior: smooth;
       
-      /* 美化捲動條樣式 */
       scrollbar-width: thin;
       scrollbar-color: var(--card-border) transparent;
     }
@@ -80,7 +80,7 @@
       width: max-content;
     }
 
-    /* 直線貫穿整個頁面，完全零 Margin，貼滿最左側至最右側 */
+    /* 直線貫穿整個頁面，無 margin 貼邊 */
     .timeline-line {
       position: absolute;
       top: 24px;
@@ -138,7 +138,7 @@
     }
 
     /* --- 月份狀態顏色標示 --- */
-    /* 1. 已過去的時間點 (綠色) */
+    /* 已過去的時間點 (綠色) */
     .timeline-node.is-past .dot {
       background-color: var(--status-past);
       box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
@@ -148,7 +148,7 @@
       color: #4ade80;
     }
 
-    /* 2. 現在的月份：緩慢平滑閃爍動畫 (不快不刺眼) */
+    /* 現在的月份：緩慢平滑閃爍動畫 */
     .timeline-node.is-current .dot {
       background-color: var(--status-current);
       animation: pulse-dot 2.5s infinite ease-in-out;
@@ -174,7 +174,7 @@
       }
     }
 
-    /* 3. 未到的月份 */
+    /* 未到的月份 */
     .timeline-node.is-future .dot {
       background-color: var(--status-future);
     }
@@ -228,14 +228,15 @@
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
     }
 
-    /* 左側多圖片展示區 */
+    /* 左側多圖片展示區 - 修正高度與 Overflow */
     .card-gallery-wrapper {
       background-color: #23120b;
       padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      overflow-y: auto;
+      height: 100%;
+      overflow: hidden; /* 防止 Y 軸超出卡片範疇 */
       border-right: 1px solid var(--card-border);
     }
 
@@ -246,21 +247,37 @@
       justify-content: flex-end;
       padding-bottom: 4px;
       border-bottom: 1px solid #44281e;
+      flex-shrink: 0;
     }
 
-    /* 圖片網格 */
     .image-grid {
       display: grid;
       gap: 12px;
       width: 100%;
-      height: 100%;
+      flex: 1; /* 自動填滿剩餘高度 */
+      min-height: 0; /* 關鍵：允許 Flex 子項目收縮 */
     }
 
-    .image-grid.count-1 { grid-template-columns: 1fr; }
-    .image-grid.count-2 { grid-template-columns: 1fr 1fr; }
-    .image-grid.count-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    .image-grid.count-3 .img-item:first-child { grid-column: span 2; }
-    .image-grid.count-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    /* 網格彈性分配高度，防止高溢出 */
+    .image-grid.count-1 { 
+      grid-template-columns: 1fr; 
+      grid-template-rows: 1fr; 
+    }
+    .image-grid.count-2 { 
+      grid-template-columns: 1fr 1fr; 
+      grid-template-rows: 1fr; 
+    }
+    .image-grid.count-3 { 
+      grid-template-columns: 1fr 1fr; 
+      grid-template-rows: 1fr 1fr; 
+    }
+    .image-grid.count-3 .img-item:first-child { 
+      grid-column: span 2; 
+    }
+    .image-grid.count-4 { 
+      grid-template-columns: 1fr 1fr; 
+      grid-template-rows: 1fr 1fr; 
+    }
 
     .img-item {
       position: relative;
@@ -268,13 +285,15 @@
       overflow: hidden;
       background-color: #3a2218;
       border: 1px solid var(--card-border);
-      min-height: 180px;
+      width: 100%;
+      height: 100%;
+      min-height: 0; /* 關鍵：移除原先 180px 限制，隨父容器調整高度 */
     }
 
     .img-item img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: cover; /* 確保圖片不變形且填滿外框 */
       display: block;
       transition: transform 0.3s ease;
     }
@@ -312,18 +331,42 @@
       overflow-y: auto;
     }
 
-    .card-header .date-badge {
+    .card-header {
+      margin-bottom: 20px;
+    }
+
+    .badge-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .date-badge {
       display: inline-block;
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 0.85rem;
       font-weight: 700;
-      margin-bottom: 12px;
     }
 
     .date-badge.is-past { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; }
     .date-badge.is-current { background-color: rgba(249, 115, 22, 0.2); color: #ffedd5; border: 1px solid #f97316; }
     .date-badge.is-future { background-color: rgba(214, 196, 188, 0.1); color: #fcf5f2; border: 1px solid #8c5b4a; }
+
+    /* 會議日期專屬 Badge */
+    .meeting-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background-color: var(--meeting-badge-bg);
+      color: #ffedd5;
+      border: 1px solid var(--accent-red-brown);
+    }
 
     .card-header h2 {
       font-size: 1.8rem;
@@ -332,21 +375,14 @@
     }
 
     .card-body {
-      margin: 20px 0;
-    }
-
-    .card-body p {
-      color: var(--text-sub);
-      line-height: 1.6;
-      font-size: 0.98rem;
-      margin-bottom: 16px;
+      margin-bottom: auto;
     }
 
     .task-title {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: 700;
       color: var(--text-main);
-      margin-bottom: 10px;
+      margin-bottom: 14px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -357,22 +393,26 @@
 
     .task-list li {
       color: var(--text-main);
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.92rem;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.98rem;
+      line-height: 1.5;
     }
 
     .task-list li::before {
       content: "■";
       color: var(--accent-red-brown);
       font-size: 0.7rem;
+      margin-top: 4px;
+      flex-shrink: 0;
     }
 
     .card-footer {
       border-top: 1px solid var(--card-border);
       padding-top: 16px;
+      margin-top: 20px;
       display: flex;
       justify-content: flex-end;
       color: var(--text-sub);
@@ -388,39 +428,163 @@
       .card-gallery-wrapper {
         border-right: none;
         border-bottom: 1px solid var(--card-border);
+        height: 380px; /* 行動端或窄螢幕時固定顯示高度 */
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- 頂部時間線區域 -->
   <header class="timeline-header" id="timelineHeader">
     <div class="timeline-track" id="timelineTrack">
       <div class="timeline-line" id="timelineLine"></div>
     </div>
   </header>
 
-  <!-- 下方詳細內容區 -->
   <main class="content-container" id="contentContainer"></main>
 
   <script>
     const milestones = [
-      { date: "2025.11", title: "草坪原貌", desc: "工程進場前進行現場草坪與周邊環境原貌記錄，並進行前期地籍勘測。", tasks: ["現場原貌拍攝存檔", "地界與平整度測量", "樹木保護範圍標記"], images: ["img/202511-01.jpg", "img/202511-02.jpg"] },
-      { date: "2025.12", title: "進場", desc: "施工團隊與重型設備進駐現場，搭設臨時圍板與安全警示設施。", tasks: ["工程告示牌設立", "施工車輛動線規劃", "臨時水電接駁"], images: ["img/202512-01.jpg", "img/202512-02.jpg"] },
-      { date: "2026.01", title: "掘地", desc: "開闢地下基礎挖掘工作，確認土質結構與地下障礙物清理。", tasks: ["地表開挖工程", "廢土方運離", "地下水文監測點設置"], images: ["img/202601-01.jpg"] },
-      { date: "2026.02", title: "地下電纜改位", desc: "配合電力公司進行施工範圍內地下高壓與低壓電纜遷移。", tasks: ["舊電纜斷電與標示", "新電纜管道鋪設", "供電系統切換測試"], images: ["img/202602-01.jpg", "img/202602-02.jpg"] },
-      { date: "2026.03", title: "安裝圍街板、地下管道改位", desc: "組裝標準施工圍街板，並進行地下雨水與污水管道改道工程。", tasks: ["圍街板隔音與安全加固", "地下排水管線重鋪", "渠務署對接檢驗"], images: ["img/202603-01.jpg", "img/202603-02.jpg", "img/202603-03.jpg"] },
-      { date: "2026.04", title: "打閘板", desc: "第一階段鋼板樁（閘板）打入工程，確保深基坑開挖之擋土安全。", tasks: ["鋼板樁定位", "打樁機具作業", "周邊地面沉降監測"], images: ["img/202604-01.jpg"] },
-      { date: "2026.05", title: "打閘板", desc: "持續推進第二階段鋼板樁打設，強化基坑支撐防護網。", tasks: ["側向支撐架設", "板樁垂直度校正", "噪音與震動監控"], images: ["img/202605-01.jpg", "img/202605-02.jpg"] },
-      { date: "2026.06", title: "打閘板、地下管道改位", desc: "完成最終階段閘板打設，並完成剩餘地下公共設施管道之改道。", tasks: ["基坑圍護結構封閉", "電信與水管最終改線", "開挖前安全評估"], images: ["img/202606-01.jpg", "img/202606-02.jpg"] },
-      { date: "2026.07", title: "打閘板、灌漿", desc: "閘板工程完工，並開始進行基底地質改良與水泥灌漿加固工程。", tasks: ["地基高壓噴射灌漿", "止水帷幕施作", "灌漿強度抽樣檢測"], images: ["img/202607-01.jpg", "img/202607-02.jpg"] },
-      { date: "2026.08", title: "灌漿", desc: "開挖底板與側壁泥凝土灌漿，構建升降機井道之堅實地基。", tasks: ["底板鋼筋綁紮", "混凝土連續澆置", "養護與強度監測"], images: ["img/202608-01.jpg", "img/202608-02.jpg"] },
-      { date: "2026.09", title: "打樁", desc: "升降機主要結構打樁工程（鋼管樁/鑽孔樁），承載大樓整體重量。", tasks: ["打樁機組裝與定位", "樁位深度與垂直度監測", "靜載重測試"], images: ["img/202609-01.jpg"] },
-      { date: "2026.12", title: "建造斜台", desc: "搭建連接地面與升降機入口之無障礙斜台與結構主體。", tasks: ["斜台鋼骨結構組裝", "混凝土階梯與坡道澆置", "扶手預埋件設置"], images: ["img/202612-01.jpg", "img/202612-02.jpg"] },
-      { date: "2027.02", title: "升降機大樓落成", desc: "升降機塔樓主體結構封頂，完成外牆裝飾與頂層機房建造。", tasks: ["塔樓結構封頂", "外牆防水與幕牆施工", "機房防雨與通風設施"], images: ["img/202702-01.jpg", "img/202702-02.jpg"] },
-      { date: "2027.03", title: "安裝升降機", desc: "進場安裝導軌、牽引主機、升降機車廂與控制系統。", tasks: ["主機與導軌精準校準", "機廂與鋼纜吊裝", "控制櫃佈線與調校"], images: ["img/202703-01.jpg", "img/202703-02.jpg", "img/202703-03.jpg"] },
-      { date: "2027.07", title: "竣工", desc: "通過政府與機電署檢測驗收，取得安全准照並正式開放啟用。", tasks: ["發出安全使用准照", "現場環境清潔與復原", "正式開放公眾使用"], images: ["img/202707-01.jpg"] }
+      { 
+        date: "2025.11", 
+        title: "草坪原貌", 
+        tasks: [
+          "現場原貌拍攝存檔"
+        ], 
+        images: ["img/202511-01.jpg"] 
+      },
+      { 
+        date: "2025.12", 
+        title: "進場", 
+        tasks: [
+          "工程告示牌設立",
+          "臨時水電接駁"
+        ], 
+        images: ["img/202512-01.jpg"] 
+      },
+      { 
+        date: "2026.01", 
+        title: "掘地", 
+        meetingDate: "9/1",
+        tasks: [
+          "地表開挖",
+          "場地整理"
+        ], 
+        images: ["img/202601-01.jpg"] 
+      },
+      { 
+        date: "2026.02", 
+        title: "地下電纜改位", 
+        meetingDate: "9/2",
+        tasks: [
+          "地下電纜臨時放置 W 座 G/F 走廊天花"
+        ], 
+        images: ["img/202602-01.jpg"] 
+      },
+      { 
+        date: "2026.03", 
+        title: "安裝圍街板", 
+        meetingDate: "9/3",
+        tasks: [
+          "安裝圍街板",
+          "地下管道改位 (W座 G/F)"
+        ], 
+        images: ["img/202603-01.jpg"] 
+      },
+      { 
+        date: "2026.04", 
+        title: "打閘板", 
+        meetingDate: "13/4",
+        tasks: [
+          "打閘板"
+        ], 
+        images: ["img/202604-01.jpg"] 
+      },
+      { 
+        date: "2026.05", 
+        title: "打閘板", 
+        meetingDate: "18/5",
+        tasks: [
+          "安裝隔音布"
+        ], 
+        images: ["img/202605-01.jpeg"] 
+      },
+      { 
+        date: "2026.06", 
+        title: "打閘板", 
+        meetingDate: "15/6",
+        tasks: [
+          "打閘板",
+          "地下管道改位"
+        ], 
+        images: ["img/202606-01.jpeg"] 
+      },
+      { 
+        date: "2026.07", 
+        title: "打閘板、灌漿", 
+        meetingDate: "13/7",
+        tasks: [
+          "10/7 臨時消防喉接駁完成",
+          "23/7 閘板機離場 & 灌漿機進場",
+          "W座 G/F 地台復原 (稍後需重做)",
+          "W座 G/F 職員洗手間外喉管改位"
+        ], 
+        images: [
+          "img/202607-01.jpeg",
+          "img/202607-02.jpeg",
+          "img/202607-03.jpeg",
+          "img/202607-04.jpeg"
+        ] 
+      },
+      { 
+        date: "2026.08", 
+        title: "灌漿", 
+        tasks: [
+          "W座 G/F 職員洗手間外喉管改位 & 地台復原",
+          "15/8 灌漿完成 (18/18)",
+          "機械運走",
+          "安裝圍街板 (G/F, 4-6/F)"
+        ], 
+        images: [
+          "img/202608-01.jpeg",
+          "img/202608-02.jpeg",
+          "img/202608-03.jpeg"
+        ] 
+      },
+      { 
+        date: "2026.09", 
+        title: "打樁", 
+        meetingDate: "14/9",
+        tasks: [
+          "試樁",
+          "打樁 (共 6 支)"
+        ], 
+        images: [] 
+      },
+      { 
+        date: "2026.12", 
+        title: "建造斜台", 
+        tasks: ["斜台鋼骨結構組裝", "混凝土階梯與坡道澆置", "扶手預埋件設置"], 
+        images: [] 
+      },
+      { 
+        date: "2027.02", 
+        title: "升降機大樓落成", 
+        tasks: ["塔樓結構封頂", "外牆防水與幕牆施工", "機房防雨與通風設施"], 
+        images: [] 
+      },
+      { 
+        date: "2027.03", 
+        title: "安裝升降機", 
+        tasks: ["主機與導軌精準校準", "機廂與鋼纜吊裝", "控制櫃佈線與調校"], 
+        images: [] 
+      },
+      { 
+        date: "2027.07", 
+        title: "竣工", 
+        tasks: ["發出安全使用准照", "現場環境清潔與復原", "正式開放公眾使用"], 
+        images: [] 
+      }
     ];
 
     const CURRENT_YM = "2026.08"; 
@@ -461,12 +625,17 @@
       }
 
       const imgCount = item.images.length;
-      const galleryHtml = item.images.map((src, i) => `
+      const galleryHtml = imgCount > 0 ? item.images.map((src, i) => `
         <div class="img-item">
           <img src="${src}" alt="${item.title} 圖片 ${i+1}" 
-               onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'img-placeholder-fallback\\'>📷 圖片預覽區域<br><span>${src}</span></div>';">
+               onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'img-placeholder-fallback\\'>📷 圖片載入失敗<br><span>${src}</span></div>';">
         </div>
-      `).join('');
+      `).join('') : `<div class="img-placeholder-fallback">📷 暫無圖片紀錄</div>`;
+
+      // 建立會議日期標籤 HTML (若有設定)
+      const meetingBadgeHtml = item.meetingDate 
+        ? `<span class="meeting-badge">📅 會議日期: ${item.meetingDate}</span>` 
+        : '';
 
       const section = document.createElement("section");
       section.className = "milestone-section";
@@ -477,19 +646,21 @@
             <div class="gallery-header">
               <span>共 ${imgCount} 張圖片</span>
             </div>
-            <div class="image-grid count-${Math.min(imgCount, 4)}">
+            <div class="image-grid count-${Math.min(imgCount || 1, 4)}">
               ${galleryHtml}
             </div>
           </div>
           <div class="card-info">
             <div class="card-header">
-              <span class="date-badge is-${status}">
-                ${item.date} • ${status === 'past' ? '已完成工序' : (status === 'current' ? '本月施工項目 (進行中)' : '規劃中工序')}
-              </span>
+              <div class="badge-group">
+                <span class="date-badge is-${status}">
+                  ${item.date} • ${status === 'past' ? '已完成工序' : (status === 'current' ? '本月施工項目 (進行中)' : '規劃中工序')}
+                </span>
+                ${meetingBadgeHtml}
+              </div>
               <h2>${item.title}</h2>
             </div>
             <div class="card-body">
-              <p>${item.desc}</p>
               <div class="task-title">重點工序項目：</div>
               <ul class="task-list">
                 ${item.tasks.map(t => `<li>${t}</li>`).join('')}
